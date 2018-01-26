@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package is.vision;
+
+option java_package = "com.is.vision";
+option java_multiple_files = true;
+
+
+message SkeletonPoint {
+  float x = 1;
+  float y = 2;
+  float score = 3;
+}
+
+enum SkeletonModel {
+  MPI = 0;
+  COCO = 1;
+}
+
+message Skeleton {
+  SkeletonModel model = 1;
+  SkeletonPoint head = 2; // MPI model only
+  SkeletonPoint nose = 3; // Coco model only
+  SkeletonPoint neck = 4; // Coco and MPI model
+  SkeletonPoint right_shoulder = 5; // Coco and MPI model 
+  SkeletonPoint right_elbow = 6; // Coco and MPI model 
+  SkeletonPoint right_wrist = 7; // Coco and MPI model 
+  SkeletonPoint left_shoulder = 8; // Coco and MPI model 
+  SkeletonPoint left_elbow = 9; // Coco and MPI model 
+  SkeletonPoint left_wrist = 10; // Coco and MPI model 
+  SkeletonPoint right_hip = 11; // Coco and MPI model 
+  SkeletonPoint right_knee = 12; // Coco and MPI model 
+  SkeletonPoint right_ankle = 13; // Coco and MPI model 
+  SkeletonPoint left_hip = 14; // Coco and MPI model 
+  SkeletonPoint left_knee = 15; // Coco and MPI model 
+  SkeletonPoint left_ankle = 16; // Coco and MPI model 
+  SkeletonPoint right_eye = 17; // Coco model only
+  SkeletonPoint left_eye = 18; // Coco model only
+  SkeletonPoint right_ear = 19; // Coco model only
+  SkeletonPoint left_ear = 20; // Coco model only
+  SkeletonPoint chest = 21; // MPI model only
+  SkeletonPoint background = 22; // Coco and MPI model
+}
+
+message Skeletons {
+  repeated Skeleton skeletons = 2;
+}
