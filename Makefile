@@ -1,13 +1,10 @@
 CXX = clang++
 CXXFLAGS += -std=c++14 -Wall
 LDFLAGS += -I/usr/local/include -L/usr/local/lib \
-	-lprotobuf -pthread -lpthread \
-	-lopenpose -lopencv_core \
-	-lboost_program_options \
-	-lismsgs 
-	#-lopentracing -lzipkin -lzipkin_opentracing
-	#-lrabbitmq -lSimpleAmqpClient
-	# -lboost_system -lboost_chrono -lboost_program_options -lboost_filesystem
+	-lprotobuf -pthread -lpthread -lrabbitmq -lSimpleAmqpClient \
+	-lopenpose -lopencv_core -lopencv_imgcodecs \
+	-lboost_system -lboost_chrono -lboost_program_options -lboost_filesystem \
+	-lismsgs  -lopentracing -lzipkin -lzipkin_opentracing
 
 PROTOC = protoc
 LOCAL_PROTOS_PATH = ./msgs/

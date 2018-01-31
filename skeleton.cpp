@@ -1,65 +1,89 @@
-#include <is/log.hpp>
-#include <is/cli.hpp>
+#include <is/msgs/image.pb.h>
+#include <is/is.hpp>
+#include "skeleton.pb.h"
+
 #include <openpose/core/headers.hpp>
 #include <openpose/filestream/headers.hpp>
 #include <openpose/gui/headers.hpp>
 #include <openpose/pose/headers.hpp>
 #include <openpose/utilities/headers.hpp>
-#include "skeleton.pb.h"
 
 using namespace is::vision;
 
-SkeletonPoint* get_skeleton_point(Skeleton* sk, std::string part) {
-  if (part == "Head") return sk->mutable_head();
-  if (part == "Nose") return sk->mutable_nose();
-  if (part == "Neck") return sk->mutable_neck();
-  if (part == "RShoulder") return sk->mutable_right_shoulder();
-  if (part == "RElbow") return sk->mutable_right_elbow();
-  if (part == "RWrist") return sk->mutable_right_wrist();
-  if (part == "LShoulder") return sk->mutable_left_shoulder();
-  if (part == "LElbow") return sk->mutable_left_elbow();
-  if (part == "LWrist") return sk->mutable_left_wrist();
-  if (part == "RHip") return sk->mutable_right_hip();
-  if (part == "RKnee") return sk->mutable_right_knee();
-  if (part == "RAnkle") return sk->mutable_right_ankle();
-  if (part == "LHip") return sk->mutable_left_hip();
-  if (part == "LKnee") return sk->mutable_left_knee();
-  if (part == "LAnkle") return sk->mutable_left_ankle();
-  if (part == "REye") return sk->mutable_right_eye();
-  if (part == "LEye") return sk->mutable_left_eye();
-  if (part == "REar") return sk->mutable_right_ear();
-  if (part == "LEar") return sk->mutable_left_ear();
-  if (part == "Chest") return sk->mutable_chest();
-  if (part == "Background") return sk->mutable_background();
-  return nullptr;
+std::string parse_entity_id(std::string const& topic) {
+  auto first_dot = topic.find_first_of('.');
+  if (first_dot == std::string::npos) return "";
+  auto second_dot = topic.find_first_of('.', first_dot + 1);
+  if (second_dot == std::string::npos) return "";
+  return topic.substr(first_dot + 1, second_dot - first_dot - 1);
+}
+
+SkeletonType get_skeleton_type(std::string const& name) {
+  const static std::unordered_map<std::string, SkeletonType> to_skeleton_type{
+      {"Head", SkeletonType::HEAD},
+      {"Nose", SkeletonType::NOSE},
+      {"Neck", SkeletonType::NECK},
+      {"RShoulder", SkeletonType::RIGHT_SHOULDER},
+      {"RElbow", SkeletonType::RIGHT_ELBOW},
+      {"RWrist", SkeletonType::RIGHT_WRIST},
+      {"LShoulder", SkeletonType::LEFT_SHOULDER},
+      {"LElbow", SkeletonType::LEFT_ELBOW},
+      {"LWrist", SkeletonType::LEFT_WRIST},
+      {"RHip", SkeletonType::RIGHT_HIP},
+      {"RKnee", SkeletonType::RIGHT_KNEE},
+      {"RAnkle", SkeletonType::RIGHT_ANKLE},
+      {"LHip", SkeletonType::LEFT_HIP},
+      {"LKnee", SkeletonType::LEFT_KNEE},
+      {"LAnkle", SkeletonType::LEFT_ANKLE},
+      {"REye", SkeletonType::RIGHT_EYE},
+      {"LEye", SkeletonType::LEFT_EYE},
+      {"REar", SkeletonType::RIGHT_EAR},
+      {"LEar", SkeletonType::LEFT_EAR},
+      {"Chest", SkeletonType::CHEST},
+      {"Background", SkeletonType::BACKGROUND}};
+
+  auto pos = to_skeleton_type.find(name);
+  return pos != to_skeleton_type.end() ? pos->second : SkeletonType::UNKNOWN;
+}
+
+void set_skeleton_links(Skeletons* sk, op::PoseModel model) {
+  auto parts = getPoseBodyPartMapping(model);
+  auto pairs = getPosePartPairs(model);
+  if (pairs.size() % 2 == 0) {
+    for (auto it = pairs.begin(); it != pairs.end();) {
+      auto link = sk->add_links();
+      link->set_begin(get_skeleton_type(parts[*it++]));
+      link->set_end(get_skeleton_type(parts[*it++]));
+    }
+  }
 }
 
 Skeletons make_skeletons(op::Array<float> const& keypoints, op::PoseModel const pose_model) {
-  auto model = pose_model == op::PoseModel::COCO_18 ? SkeletonModel::COCO : SkeletonModel::MPI;
   auto body_part = getPoseBodyPartMapping(pose_model);
   Skeletons skeletons;
   auto n_people = keypoints.getSize(0);
   auto n_parts = keypoints.getSize(1);
   for (auto n = 0; n < n_people; ++n) {
     auto sk = skeletons.add_skeletons();
-    sk->set_model(model);
     for (auto p = 0; p < n_parts; ++p) {
-      auto sk_point = get_skeleton_point(sk, body_part[p]);
-      auto base_index = keypoints.getSize(2)*(n*n_parts + p);
-      sk_point->set_x(keypoints[base_index]);
-      sk_point->set_y(keypoints[base_index + 1]);
-      sk_point->set_score(keypoints[base_index + 2]);
+      auto sk_part = sk->add_parts();
+      auto base_index = keypoints.getSize(2) * (n * n_parts + p);
+      sk_part->set_type(get_skeleton_type(body_part[p]));
+      sk_part->set_x(keypoints[base_index]);
+      sk_part->set_y(keypoints[base_index + 1]);
+      sk_part->set_score(keypoints[base_index + 2]);
     }
   }
+  set_skeleton_links(&skeletons, pose_model);
   return skeletons;
 }
 
 int main(int argc, char* argv[]) {
   // general options variable
   std::string uri, service, zipkin_host;
-  int zipkin_port;
+  int zipkin_port, prefetch;
   // openpose options variables
-  std::string image_path, model_pose, model_folder, net_resolution, output_resolution;
+  std::string model_pose, model_folder, net_resolution, output_resolution;
   int32_t num_gpu_start, scale_number;
   double scale_gap;
 
@@ -71,9 +95,9 @@ int main(int argc, char* argv[]) {
   opt_add("zipkin-host,z", is::po::value<std::string>(&zipkin_host)->default_value("zipkin.default"),
           "zipkin hostname");
   opt_add("zipkin-port,p", is::po::value<int>(&zipkin_port)->default_value(9411), "zipkin port");
+  opt_add("prefetch", is::po::value<int>(&prefetch)->default_value(1),
+          "number of messages buffered. Negative means without limit.");
   // openpose options
-  // REMOVE THIS OPTION AFTER INITIAL TEST
-  opt_add("image-path", is::po::value<std::string>(&image_path)->required(), "Process the desired image.");
   opt_add("model-pose", is::po::value<std::string>(&model_pose)->default_value("COCO"),
           "Model to be used. E.g. `COCO` (18 keypoints), `MPI` (15 keypoints, "
           "~10% faster), `MPI_4_layers` (15 keypoints, even faster but less "
@@ -109,52 +133,63 @@ int main(int argc, char* argv[]) {
   opt_add("scale-number", is::po::value<int32_t>(&scale_number)->default_value(1), "Number of scales to average.");
 
   auto vm = is::parse_program_options(argc, argv, opts);
+
   // read openpose options and check range when necessary
   const auto output_size = op::flagsToPoint(output_resolution, "-1x-1");
   const auto net_input_size = op::flagsToPoint(net_resolution, "-1x368");
   const auto pose_model = op::flagsToPoseModel(model_pose);
-
-  // // Check no contradictory flags enabled
-  // if (FLAGS_alpha_pose < 0. || FLAGS_alpha_pose > 1.)
-  //   op::error("Alpha value for blending must be in the range [0,1].", __LINE__, __FUNCTION__,
-  //             __FILE__);
   if (scale_gap <= 0. && scale_number > 1) is::critical("\'scale_gap\' must be greater than 0 or scale_number = 1.");
 
   // initialize openpose required classes
-
   op::ScaleAndSizeExtractor scaleAndSizeExtractor(net_input_size, output_size, scale_number, scale_gap);
   op::CvMatToOpInput cvmat_to_input;
   op::PoseExtractorCaffe pose_extractor{pose_model, model_folder, num_gpu_start};
-
-  // initialize resources on desired thread (in this case single thread, i.e. we init resources
-  // here)
   pose_extractor.initializationOnThread();
 
-  // load image. REMOVE AFTER FIRST TEST
-  cv::Mat input_image = op::loadImage(image_path, CV_LOAD_IMAGE_COLOR);
-  if (input_image.empty()) is::critical("Could not open or find the image: {}", image_path);
-  const op::Point<int> image_size{input_image.cols, input_image.rows};
+  is::Tracer tracer(service, zipkin_host, zipkin_port);
+  auto channel = is::rmq::Channel::CreateFromUri(uri);
+  auto tag = is::consumer_id();
+  is::declare_queue(channel, service, tag, /*exclusive*/ false, /*prefetch*/ prefetch);
+  is::subscribe(channel, service, "CameraGateway.*.Frame");
 
+  for (;;) {
+    auto envelope = channel->BasicConsumeMessage();
 
-  // get desired scale sizes
-  std::vector<double> scale_input_to_netinputs;
-  std::vector<op::Point<int>> net_inputs_size;
-  double scale_input_to_output;
-  op::Point<int> output_res;
-  std::tie(scale_input_to_netinputs, net_inputs_size, scale_input_to_output, output_res) =
-      scaleAndSizeExtractor.extract(image_size);
+    auto start_time = is::current_time();
+    auto span = tracer.extract(envelope, tag);
 
-  // format input image to OpenPose input and output formats
-  const auto net_input_array = cvmat_to_input.createArray(input_image, scale_input_to_netinputs, net_inputs_size);
+    auto maybe_image = is::unpack<Image>(envelope);
+    if (!maybe_image) { continue; }
 
-  // estimate pose keypoints
-  pose_extractor.forwardPass(net_input_array, image_size, scale_input_to_netinputs);
-  const auto pose_keypoints = pose_extractor.getPoseKeypoints();
+    std::vector<char> coded(maybe_image->data().begin(), maybe_image->data().end());
+    auto input_image = cv::imdecode(coded, CV_LOAD_IMAGE_COLOR);
+    auto id = parse_entity_id(envelope->RoutingKey());
+    const op::Point<int> image_size{input_image.cols, input_image.rows};
 
-  is::info("People detected: {}", pose_keypoints.getSize(0));
-  is::info("Number of body parts: {}", pose_keypoints.getSize(1));
-  auto skeletons = make_skeletons(pose_keypoints, pose_model);
-  skeletons.PrintDebugString();
+    // get desired scale sizes
+    std::vector<double> scale_input_to_netinputs;
+    std::vector<op::Point<int>> net_inputs_size;
+    double scale_input_to_output;
+    op::Point<int> output_res;
+    std::tie(scale_input_to_netinputs, net_inputs_size, scale_input_to_output, output_res) =
+        scaleAndSizeExtractor.extract(image_size);
+
+    // format input image to OpenPose input and output formats
+    const auto net_input_array = cvmat_to_input.createArray(input_image, scale_input_to_netinputs, net_inputs_size);
+
+    // estimate pose keypoints
+    pose_extractor.forwardPass(net_input_array, image_size, scale_input_to_netinputs);
+    const auto pose_keypoints = pose_extractor.getPoseKeypoints();
+
+    auto skeletons = make_skeletons(pose_keypoints, pose_model);
+    auto msg = is::pack_proto(skeletons);
+    tracer.inject(msg, span->context());
+    is::publish(channel, fmt::format("OpenPose.{}.Skeletons", id), msg);
+
+    span->Finish();
+    channel->BasicAck(envelope);
+    is::info("Took: {}", is::current_time() - start_time);
+  }
 
   return 0;
 }

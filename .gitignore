@@ -3,3 +3,4 @@
 *.pb.cc
 skeleton
 settings.json
+*.pyc

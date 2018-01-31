@@ -6,42 +6,48 @@ option java_package = "com.is.vision";
 option java_multiple_files = true;
 
 
-message SkeletonPoint {
-  float x = 1;
-  float y = 2;
-  float score = 3;
+enum SkeletonType {
+  UNKNOWN = 0;
+  HEAD = 1; // MPI model only
+  NOSE = 2; // Coco model only
+  NECK = 3; // Coco and MPI model
+  RIGHT_SHOULDER = 4; // Coco and MPI model 
+  RIGHT_ELBOW = 5; // Coco and MPI model 
+  RIGHT_WRIST = 6; // Coco and MPI model 
+  LEFT_SHOULDER = 7; // Coco and MPI model 
+  LEFT_ELBOW = 8; // Coco and MPI model 
+  LEFT_WRIST = 9; // Coco and MPI model 
+  RIGHT_HIP = 10; // Coco and MPI model 
+  RIGHT_KNEE = 11; // Coco and MPI model 
+  RIGHT_ANKLE = 12; // Coco and MPI model 
+  LEFT_HIP = 13; // Coco and MPI model 
+  LEFT_KNEE = 14; // Coco and MPI model 
+  LEFT_ANKLE = 15; // Coco and MPI model 
+  RIGHT_EYE = 16; // Coco model only
+  LEFT_EYE = 17; // Coco model only
+  RIGHT_EAR = 18; // Coco model only
+  LEFT_EAR = 19; // Coco model only
+  CHEST = 20; // MPI model only
+  BACKGROUND = 21; // Coco and MPI model
 }
 
-enum SkeletonModel {
-  MPI = 0;
-  COCO = 1;
+message SkeletonPart { 
+  SkeletonType type = 1;
+  float x = 2;
+  float y = 3;
+  float score = 4;
+}
+
+message SkeletonLink {
+  SkeletonType begin = 1;
+  SkeletonType end = 2;
 }
 
 message Skeleton {
-  SkeletonModel model = 1;
-  SkeletonPoint head = 2; // MPI model only
-  SkeletonPoint nose = 3; // Coco model only
-  SkeletonPoint neck = 4; // Coco and MPI model
-  SkeletonPoint right_shoulder = 5; // Coco and MPI model 
-  SkeletonPoint right_elbow = 6; // Coco and MPI model 
-  SkeletonPoint right_wrist = 7; // Coco and MPI model 
-  SkeletonPoint left_shoulder = 8; // Coco and MPI model 
-  SkeletonPoint left_elbow = 9; // Coco and MPI model 
-  SkeletonPoint left_wrist = 10; // Coco and MPI model 
-  SkeletonPoint right_hip = 11; // Coco and MPI model 
-  SkeletonPoint right_knee = 12; // Coco and MPI model 
-  SkeletonPoint right_ankle = 13; // Coco and MPI model 
-  SkeletonPoint left_hip = 14; // Coco and MPI model 
-  SkeletonPoint left_knee = 15; // Coco and MPI model 
-  SkeletonPoint left_ankle = 16; // Coco and MPI model 
-  SkeletonPoint right_eye = 17; // Coco model only
-  SkeletonPoint left_eye = 18; // Coco model only
-  SkeletonPoint right_ear = 19; // Coco model only
-  SkeletonPoint left_ear = 20; // Coco model only
-  SkeletonPoint chest = 21; // MPI model only
-  SkeletonPoint background = 22; // Coco and MPI model
+  repeated SkeletonPart parts = 1;
 }
 
 message Skeletons {
-  repeated Skeleton skeletons = 2;
+  repeated Skeleton skeletons = 1;
+  repeated SkeletonLink links = 2;
 }
