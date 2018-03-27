@@ -35,6 +35,7 @@ message SkeletonPart {
   SkeletonType type = 1;
   float x = 2;
   float y = 3;
+  float z = 5;
   float score = 4;
 }
 
