@@ -14,7 +14,7 @@ vpath %.proto $(LOCAL_PROTOS_PATH)
 MAINTAINER = viros
 SERVICE = skeleton
 TEST = test
-VERSION = 1
+VERSION = 1.1
 LOCAL_REGISTRY = ninja.local:5000
 
 all: debug

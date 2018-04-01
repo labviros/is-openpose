@@ -18,6 +18,10 @@ RUN make release                                                \
 
 # Deployment container
 FROM scratch
-ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV LD_LIBRARY_PATH=/usr/local/lib \
+    PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    LIBRARY_PATH=/usr/local/cuda/lib64/stubs: \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility
 COPY --from=0 /opt/deploy/ /
 CMD ["/service"]
