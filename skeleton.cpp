@@ -66,12 +66,17 @@ Skeletons make_skeletons(op::Array<float> const& keypoints, op::PoseModel const 
   for (auto n = 0; n < n_people; ++n) {
     auto sk = skeletons.add_skeletons();
     for (auto p = 0; p < n_parts; ++p) {
-      auto sk_part = sk->add_parts();
       auto base_index = keypoints.getSize(2) * (n * n_parts + p);
-      sk_part->set_type(get_skeleton_type(body_part[p]));
-      sk_part->set_x(keypoints[base_index]);
-      sk_part->set_y(keypoints[base_index + 1]);
-      sk_part->set_score(keypoints[base_index + 2]);
+      auto x = keypoints[base_index];
+      auto y = keypoints[base_index + 1];
+      auto score = keypoints[base_index + 2];
+      if ((x + y + score) > 0.0) {
+        auto sk_part = sk->add_parts();
+        sk_part->set_type(get_skeleton_type(body_part[p]));
+        sk_part->set_x(x);
+        sk_part->set_y(y);
+        sk_part->set_score(score);
+      }
     }
   }
   set_skeleton_links(&skeletons, pose_model);
