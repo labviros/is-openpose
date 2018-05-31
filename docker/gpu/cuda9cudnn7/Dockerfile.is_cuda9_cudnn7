@@ -1,0 +1,16 @@
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+
+ENV SDK_PATH_IS /is-sdk 
+ENV PATH="${SDK_PATH_IS}/bin:${PATH}"
+
+RUN apt update \
+ && apt install -y git
+
+RUN git clone https://github.com/labviros/is-sdk /is-sdk \
+ && cd /is-sdk/                                          \
+ && install_essentials                                   \
+ && git config --global user.name "Developer"            \
+ && git config --global user.email developer@is.com      \
+ && b . "-Dbuild_shared_libs=TRUE -Dbuild_with_qt=FALSE" \
+ && rm -r build                                          \
+ && ldconfig

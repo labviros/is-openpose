@@ -1,0 +1,45 @@
+FROM viros/is-cpp:1-cuda-9.0-cudnn7
+
+RUN apt-get update && apt-get install -y --no-install-recommends    \
+  ca-certificates                                                   \
+  cmake                                                             \
+  git                                                               \
+  libatlas-base-dev                                                 \
+  libatlas-dev                                                      \
+  libgflags-dev                                                     \
+  libgoogle-glog-dev                                                \
+  libhdf5-dev                                                       \
+  pkg-config                                                        \
+  python-yaml                                                       \
+  python-six                                                        \
+  wget
+
+ENV CUDA_ARCH_BIN "50 52 60 61 70"
+ENV CUDA_ARCH_PTX "70" 
+
+RUN cd /tmp                                                         \
+ && git clone https://github.com/CMU-Perceptual-Computing-Lab/caffe \
+ && cd /tmp/caffe                                                   \
+ && rm -rf examples/*                                               \
+ && echo "" > examples/CMakeLists.txt                               \
+ && rm -rf tools/*                                                  \
+ && echo "" > tools/CMakeLists.txt                                  \
+ && b .                                                             \
+  '-DCMAKE_CXX_FLAGS="-std=c++11"                                   \
+   -DCMAKE_BUILD_TYPE=Release                                       \
+   -DBUILD_docs=OFF                                                 \
+   -DBUILD_SHARED_LIBS=ON                                           \
+   -DCUDA_ARCH_NAME=Manual                                          \
+   -DCUDA_ARCH_BIN="${CUDA_ARCH_BIN}"                               \
+   -DCUDA_ARCH_PTX="${CUDA_ARCH_PTX}"                               \
+   -DUSE_CUDNN=ON                                                   \
+   -DUSE_OPENCV=ON                                                  \
+   -DUSE_LEVELDB=OFF                                                \
+   -DUSE_LMDB=OFF                                                   \
+   -DBUILD_python=OFF                                               \
+   -DBUILD_python_layer=OFF                                         \
+   -DBUILD_matlab=OFF                                               \
+   -DCUDA_NVCC_FLAGS="-O3"'                                         \
+ && ldconfig                                                        \
+ && cd ..                                                           \
+ && rm -rf caffe

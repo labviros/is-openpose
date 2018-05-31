@@ -1,0 +1,18 @@
+FROM viros/is-cpp:1-cuda-9.0-cudnn7-caffe
+
+RUN cd /tmp                                                 \
+ && git clone https://github.com/felippe-mendonca/openpose  \
+ && cd /tmp/openpose                                        \
+ && b .                                                     \
+  "-DBUILD_SHARED_LIBS=ON                                   \ 
+   -DBUILD_EXAMPLES=OFF                                     \  
+   -DBUILD_DOCS=OFF                                         \ 
+   -DBUILD_CAFFE=OFF                                        \
+   -DCaffe_INCLUDE_DIRS='/is-sdk/include'                   \
+   -DCaffe_LIBS='/is-sdk/lib/libcaffe.so'                   \
+   -DDOWNLOAD_COCO_MODEL=OFF                                \
+   -DDOWNLOAD_FACE_MODEL=OFF                                \
+   -DDOWNLOAD_HAND_MODEL=OFF                                \
+   -DDOWNLOAD_MPI_MODEL=OFF"                                \ 
+ && ldconfig                                                \
+ && rm -rf /tmp/openpose
